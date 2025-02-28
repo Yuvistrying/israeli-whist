@@ -1,0 +1,2458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Israeli Whist Card Game</title>
+    <!-- Import cards.js library as mentioned in the research -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        // Define STANDARD before loading cards.js
+        var STANDARD = {
+            suits: ['hearts', 'spades', 'diamonds', 'clubs'],
+            ranks: ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']
+        };
+    </script>
+    <script src="https://einaregilsson.github.io/cards.js/cards.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #006400;
+            color: white;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .game-board {
+            display: grid;
+            grid-template-rows: 1fr 2fr 1fr;
+            grid-template-columns: 1fr 3fr 1fr;
+            height: 80vh;
+            gap: 10px;
+        }
+        
+        .player-area {
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            padding: 10px;
+            background-color: rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+        
+        .player-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .player-bid {
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .player-cards {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 100%;
+            overflow-x: auto;
+        }
+        
+        .card {
+            width: 60px;
+            height: 90px;
+            background-color: white;
+            border-radius: 5px;
+            margin: 2px;
+            position: relative;
+            color: black;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s;
+        }
+        
+        .card:hover {
+            transform: translateY(-10px);
+        }
+        
+        .card.back {
+            background-color: #b22234;
+            background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, #3c3b6e 5px, #3c3b6e 10px);
+        }
+        
+        .card-suit {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            font-size: 16px;
+        }
+        
+        .card-value {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        .hearts, .diamonds {
+            color: #e60000;
+        }
+        
+        .spades, .clubs {
+            color: #000000;
+        }
+        
+        .game-center {
+            grid-column: 2;
+            grid-row: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .current-trick {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+            background-color: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+        }
+        
+        .trick-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .trick-player {
+            font-size: 12px;
+            margin-bottom: 5px;
+            color: #ffcc00;
+        }
+        
+        .winning-card {
+            box-shadow: 0 0 10px 3px gold;
+            transform: translateY(-5px);
+        }
+        
+        .trick-winner-message {
+            color: gold;
+            font-weight: bold;
+            margin: 10px 0;
+            font-size: 18px;
+            text-align: center;
+        }
+        
+        .game-status {
+            font-size: 16px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .player-north {
+            grid-column: 2;
+            grid-row: 1;
+        }
+        
+        .player-east {
+            grid-column: 3;
+            grid-row: 2;
+        }
+        
+        .player-south {
+            grid-column: 2;
+            grid-row: 3;
+        }
+        
+        .player-west {
+            grid-column: 1;
+            grid-row: 2;
+        }
+        
+        .controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+        
+        .bid-controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+        
+        button {
+            margin: 5px;
+            padding: 8px 15px;
+            background-color: #3c3b6e;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background-color: #2a2a4d;
+        }
+        
+        button:disabled {
+            background-color: #666;
+            cursor: not-allowed;
+        }
+        
+        .scores-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        
+        .turn-indicator {
+            font-weight: bold;
+            color: #ffcc00;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        
+        .start-game {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        .start-game button {
+            font-size: 18px;
+            padding: 15px 30px;
+            margin-top: 20px;
+        }
+        
+        .active-player {
+            box-shadow: 0 0 10px 5px #ffcc00;
+        }
+        
+        /* Adding responsive design for mobile devices */
+        @media (max-width: 768px) {
+            .game-board {
+                grid-template-rows: 1fr 1fr 2fr 1fr;
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+            
+            .player-north {
+                grid-column: 1;
+                grid-row: 1;
+            }
+            
+            .player-east {
+                grid-column: 1;
+                grid-row: 2;
+            }
+            
+            .player-south {
+                grid-column: 1;
+                grid-row: 4;
+            }
+            
+            .player-west {
+                grid-column: 1;
+                grid-row: 3;
+            }
+            
+            .game-center {
+                grid-column: 1;
+                grid-row: 3;
+                z-index: 10;
+                background-color: rgba(0, 100, 0, 0.9);
+                padding: 10px;
+                border-radius: 10px;
+            }
+            
+            .card {
+                width: 45px;
+                height: 67px;
+                font-size: 12px;
+            }
+        }
+        
+        /* Game info and rules panel */
+        .rules-panel {
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            max-width: 300px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        .rules-content {
+            display: none;
+            margin-top: 10px;
+        }
+        
+        .rules-panel.expanded .rules-content {
+            display: block;
+        }
+        
+        /* Custom card styles for fallback if cards.js fails */
+        .custom-card {
+            background-image: url('https://www.transparenttextures.com/patterns/clean-gray-paper.png');
+            background-color: white;
+        }
+        
+        /* Add this CSS to highlight invalid cards with a red border */
+        .invalid-card {
+            border: 3px solid red !important;
+            animation: shake 0.5s;
+        }
+        
+        /* Add a valid card highlight */
+        .valid-card {
+            border: 2px solid lime;
+            transform: translateY(-5px);
+            transition: all 0.2s ease;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        
+        /* Add a second suit symbol at the bottom right */
+        .card-suit-bottom {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            font-size: 16px;
+            transform: rotate(180deg);
+        }
+        
+        /* Add this to the CSS section */
+        .bid-history-panel {
+            position: absolute;
+            top: 150px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        #bid-history {
+            font-size: 14px;
+        }
+
+        .bid-history-item {
+            margin-bottom: 5px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Israeli Whist</h1>
+        
+        <div id="start-screen" class="start-game">
+            <h2>Israeli Whist Card Game</h2>
+            <p>Play the popular Israeli version of Whist with 4 players</p>
+            <div style="margin: 20px 0; text-align: left; max-width: 600px;">
+                <h3>Game Overview:</h3>
+                <p>Israeli Whist is a four-player card game without partnerships, featuring two bidding phases 
+                to determine the trump suit and each player's trick count, followed by trick-taking and scoring based on exact bids.</p>
+                
+                <h3>Basic Rules:</h3>
+                <ul>
+                    <li>First bidding phase: Bid at least 5 tricks with a suit or no-trump</li>
+                    <li>Second bidding phase: Each player bids their expected tricks</li>
+                    <li>Playing phase: Follow suit if possible, highest card or trump wins</li>
+                    <li>Scoring: Exact bids earn 10 + (bid²) points; over/under lose 10 per trick difference</li>
+                    <li>Zero bids: Special scoring rules (see Help section during game)</li>
+                </ul>
+            </div>
+            <div>
+                <button id="start-game-btn">Start New Game</button>
+                <button id="multiplayer-btn" style="background-color: #666; cursor: not-allowed;" disabled title="Coming soon!">Multiplayer (Coming Soon)</button>
+            </div>
+        </div>
+        
+        <div id="game-container" style="display: none;">
+            <div class="game-board">
+                <div class="player-area player-north" id="player-0">
+                    <div class="player-name">North (AI)</div>
+                    <div class="player-bid" id="bid-0"></div>
+                    <div class="player-cards" id="cards-0"></div>
+                </div>
+                
+                <div class="player-area player-east" id="player-1">
+                    <div class="player-name">East (AI)</div>
+                    <div class="player-bid" id="bid-1"></div>
+                    <div class="player-cards" id="cards-1"></div>
+                </div>
+                
+                <div class="player-area player-south" id="player-2">
+                    <div class="player-name">South (You)</div>
+                    <div class="player-bid" id="bid-2"></div>
+                    <div class="player-cards" id="cards-2"></div>
+                </div>
+                
+                <div class="player-area player-west" id="player-3">
+                    <div class="player-name">West (AI)</div>
+                    <div class="player-bid" id="bid-3"></div>
+                    <div class="player-cards" id="cards-3"></div>
+                </div>
+                
+                <div class="game-center">
+                    <div id="game-status" class="game-status">Starting new game...</div>
+                    <div id="trump-indicator" class="trump-indicator"></div>
+                    <div id="turn-indicator" class="turn-indicator"></div>
+                    <div id="current-trick" class="current-trick"></div>
+                    <div class="controls">
+                        <div id="bid-controls" class="bid-controls" style="display: none;">
+                            <div class="bid-buttons">
+                                <button class="bid-button" data-bid="5">5</button>
+                                <button class="bid-button" data-bid="6">6</button>
+                                <button class="bid-button" data-bid="7">7</button>
+                                <button class="bid-button" data-bid="8">8</button>
+                                <button class="bid-button" data-bid="9">9</button>
+                                <button class="bid-button" data-bid="10">10</button>
+                                <button class="bid-button" data-bid="11">11</button>
+                                <button class="bid-button" data-bid="12">12</button>
+                                <button class="bid-button" data-bid="13">13</button>
+                            </div>
+                            <div class="suit-buttons">
+                                <button class="suit-button" data-suit="clubs">♣ Clubs</button>
+                                <button class="suit-button" data-suit="diamonds">♦ Diamonds</button>
+                                <button class="suit-button" data-suit="hearts">♥ Hearts</button>
+                                <button class="suit-button" data-suit="spades">♠ Spades</button>
+                                <button class="suit-button" data-suit="no-trump">NT</button>
+                                <button id="pass-button">Pass</button>
+                            </div>
+                        </div>
+                        <div id="trick-bid-controls" class="bid-controls" style="display: none;">
+                            <div>
+                                <button class="trick-bid-button" data-bid="0">0</button>
+                                <button class="trick-bid-button" data-bid="1">1</button>
+                                <button class="trick-bid-button" data-bid="2">2</button>
+                                <button class="trick-bid-button" data-bid="3">3</button>
+                                <button class="trick-bid-button" data-bid="4">4</button>
+                                <button class="trick-bid-button" data-bid="5">5</button>
+                                <button class="trick-bid-button" data-bid="6">6</button>
+                                <button class="trick-bid-button" data-bid="7">7</button>
+                                <button class="trick-bid-button" data-bid="8">8</button>
+                                <button class="trick-bid-button" data-bid="9">9</button>
+                                <button class="trick-bid-button" data-bid="10">10</button>
+                                <button class="trick-bid-button" data-bid="11">11</button>
+                                <button class="trick-bid-button" data-bid="12">12</button>
+                                <button class="trick-bid-button" data-bid="13">13</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="scores-panel">
+                <h3>Scores</h3>
+                <div id="scores-display">
+                    <div>North: 0</div>
+                    <div>East: 0</div>
+                    <div>South (You): 0</div>
+                    <div>West: 0</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Add this after the scores-panel div -->
+        <div class="bid-history-panel">
+            <h3>Bid History</h3>
+            <div id="bid-history"></div>
+        </div>
+        
+        <!-- Rules panel -->
+        <div class="rules-panel" id="rules-panel">
+            <div class="rules-header">Game Help (click to expand)</div>
+            <div class="rules-content">
+                <h4>Israeli Whist Rules:</h4>
+                <p><strong>First Bidding Phase:</strong> Bid at least 5 tricks with suit/no-trump or pass. Highest bid wins.</p>
+                <p><strong>Second Bidding Phase:</strong> Each player bids expected tricks (0+). Last bidder can't make total 13.</p>
+                <p><strong>Play:</strong> Follow suit if possible. Highest trump (if played) or highest card of led suit wins.</p>
+                <p><strong>Scoring:</strong></p>
+                <ul>
+                    <li>Exact bid ≥1: 10 + (tricks²) points</li>
+                    <li>Over/under bid: -10 per trick difference</li>
+                    <li>Bid 0: Make 0 in "over" = 30, in "under" = 50; Fail = -50 + 10 per trick after first</li>
+                </ul>
+                <p>"Over" means total bids exceed 13, "Under" means total bids less than 13.</p>
+                <p><strong>Suit Ranking:</strong> No Trump (highest) > Spades > Hearts > Diamonds > Clubs</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Card class definition
+        class Card {
+            constructor(suit, rank) {
+                this.suit = suit;
+                this.rank = rank;
+                this.faceUp = false;
+            }
+            
+            // Get the display value of the card
+            get value() {
+                const rankMap = {
+                    '14': 'A',
+                    '13': 'K',
+                    '12': 'Q',
+                    '11': 'J',
+                    '10': '10',
+                    '9': '9',
+                    '8': '8',
+                    '7': '7',
+                    '6': '6',
+                    '5': '5',
+                    '4': '4',
+                    '3': '3',
+                    '2': '2'
+                };
+                return rankMap[this.rank.toString()];
+            }
+            
+            // Get the suit symbol
+            get suitSymbol() {
+                const suitMap = {
+                    'spades': '♠',
+                    'hearts': '♥',
+                    'diamonds': '♦',
+                    'clubs': '♣'
+                };
+                return suitMap[this.suit];
+            }
+            
+            // Get suit CSS class
+            get suitClass() {
+                return this.suit;
+            }
+            
+            // Compare cards (for sorting)
+            compare(card) {
+                if (this.rank !== card.rank) {
+                    return this.rank - card.rank;
+                }
+                return this.suit.localeCompare(card.suit);
+            }
+            
+            // Create HTML element for the card
+            createHTML() {
+                // Fallback card rendering
+                const cardElement = document.createElement('div');
+                cardElement.className = `card custom-card ${this.faceUp ? '' : 'back'}`;
+                cardElement.dataset.suit = this.suit;
+                cardElement.dataset.rank = this.rank;
+                
+                if (this.faceUp) {
+                    const suitElement = document.createElement('div');
+                    suitElement.className = `card-suit ${this.suit}`;
+                    suitElement.textContent = this.suitSymbol;
+                    
+                    const valueElement = document.createElement('div');
+                    valueElement.className = `card-value ${this.suit}`;
+                    valueElement.textContent = this.value;
+                    
+                    const bottomSuitElement = document.createElement('div');
+                    bottomSuitElement.className = `card-suit-bottom ${this.suit}`;
+                    bottomSuitElement.textContent = this.suitSymbol;
+                    
+                    cardElement.appendChild(suitElement);
+                    cardElement.appendChild(valueElement);
+                    cardElement.appendChild(bottomSuitElement);
+                }
+                
+                return cardElement;
+            }
+        }
+
+        // Deck class definition
+        class Deck {
+            constructor() {
+                this.cards = [];
+                this.reset();
+            }
+            
+            // Reset and create a new deck
+            reset() {
+                this.cards = [];
+                const suits = ['spades', 'hearts', 'diamonds', 'clubs'];
+                const ranks = Array.from({length: 13}, (_, i) => i + 2); // 2 to 14 (A)
+                
+                for (const suit of suits) {
+                    for (const rank of ranks) {
+                        this.cards.push(new Card(suit, rank));
+                    }
+                }
+            }
+            
+            // Shuffle the deck
+            shuffle() {
+                for (let i = this.cards.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [this.cards[i], this.cards[j]] = [this.cards[j], this.cards[i]];
+                }
+            }
+            
+            // Deal cards to players
+            deal(players, cardsPerPlayer) {
+                if (this.cards.length < players.length * cardsPerPlayer) {
+                    throw new Error('Not enough cards in deck');
+                }
+                
+                // Deal cards one at a time to each player
+                for (let i = 0; i < cardsPerPlayer; i++) {
+                    for (let j = 0; j < players.length; j++) {
+                        const card = this.cards.pop();
+                        players[j].addCard(card);
+                    }
+                }
+                
+                // Sort players' hands
+                for (const player of players) {
+                    player.sortHand();
+                }
+            }
+        }
+
+        // Player class definition
+        class Player {
+            constructor(id, name, isHuman = false) {
+                this.id = id;
+                this.name = name;
+                this.isHuman = isHuman;
+                this.hand = [];
+                this.bid = null;
+                this.trickBid = null;
+                this.tricks = 0;
+                this.score = 0;
+            }
+            
+            // Add a card to player's hand
+            addCard(card) {
+                if (this.isHuman) {
+                    card.faceUp = true;
+                }
+                this.hand.push(card);
+            }
+            
+            // Sort player's hand for better display
+            sortHand() {
+                // Sort by suit and rank
+                this.hand.sort((a, b) => {
+                    const suitOrder = {'spades': 3, 'hearts': 2, 'diamonds': 1, 'clubs': 0};
+                    if (a.suit !== b.suit) {
+                        return suitOrder[b.suit] - suitOrder[a.suit];
+                    }
+                    return b.rank - a.rank;
+                });
+            }
+            
+            // Reset player for new hand
+            reset() {
+                this.hand = [];
+                this.bid = null;
+                this.trickBid = null;
+                this.tricks = 0;
+            }
+            
+            // Get valid cards based on led suit
+            getValidCards(ledSuit, trumpSuit) {
+                if (!ledSuit) {
+                    // First to play, any card is valid
+                    return this.hand;
+                }
+                
+                // Check if player has cards of led suit
+                const hasSuit = this.hand.some(card => card.suit === ledSuit);
+                
+                if (hasSuit) {
+                    // Must follow suit
+                    return this.hand.filter(card => card.suit === ledSuit);
+                } else {
+                    // Can play any card
+                    return this.hand;
+                }
+            }
+            
+            // AI logic for making first phase bid
+            makeFirstPhaseBid(currentBid, consecutivePasses) {
+                // Simple AI logic for bidding
+                // Count high cards by suit
+                const suitCounts = {
+                    'spades': 0,
+                    'hearts': 0,
+                    'diamonds': 0,
+                    'clubs': 0
+                };
+                
+                let highCards = 0;
+                
+                for (const card of this.hand) {
+                    if (card.rank >= 11) { // J, Q, K, A
+                        suitCounts[card.suit]++;
+                        highCards++;
+                    }
+                }
+                
+                // Find strongest suit
+                let bestSuit = 'clubs';
+                let bestCount = suitCounts.clubs;
+                
+                if (suitCounts.diamonds > bestCount) {
+                    bestSuit = 'diamonds';
+                    bestCount = suitCounts.diamonds;
+                }
+                
+                if (suitCounts.hearts > bestCount) {
+                    bestSuit = 'hearts';
+                    bestCount = suitCounts.hearts;
+                }
+                
+                if (suitCounts.spades > bestCount) {
+                    bestSuit = 'spades';
+                    bestCount = suitCounts.spades;
+                }
+                
+                // Decide to bid or pass
+                if (highCards >= 3 && consecutivePasses < 3) {
+                    // Try to bid
+                    const bidTricks = 5 + Math.floor(highCards / 2);
+                    
+                    // Check if our bid is higher than current
+                    if (!currentBid || currentBid.tricks < bidTricks) {
+                        return {
+                            tricks: bidTricks,
+                            suit: bestSuit
+                        };
+                    }
+                    
+                    // If our bid tricks are equal, try to outbid with better suit
+                    if (currentBid && currentBid.tricks === bidTricks) {
+                        const suitRank = {
+                            'clubs': 1,
+                            'diamonds': 2,
+                            'hearts': 3,
+                            'spades': 4,
+                            'no-trump': 5
+                        };
+                        
+                        if (suitRank[bestSuit] > suitRank[currentBid.suit]) {
+                            return {
+                                tricks: bidTricks,
+                                suit: bestSuit
+                            };
+                        }
+                    }
+                }
+                
+                // Pass if can't outbid or hand is weak
+                return null;
+            }
+            
+            // AI logic for making second phase bid
+            makeSecondPhaseBid(currentBids, totalPlayers, trumpSuit, isLastBidder, totalBidsSoFar) {
+                // Count high cards and cards in trump suit
+                let highCards = 0;
+                let trumpCards = 0;
+                
+                for (const card of this.hand) {
+                    if (card.rank >= 11) { // J, Q, K, A
+                        highCards++;
+                    }
+                    if (card.suit === trumpSuit) {
+                        trumpCards++;
+                    }
+                }
+                
+                // Calculate expected tricks
+                let expectedTricks = Math.min(Math.floor(highCards / 2) + Math.floor(trumpCards / 3), 8);
+                
+                // Special handling for last bidder (avoid total of 13)
+                if (isLastBidder) {
+                    if (totalBidsSoFar + expectedTricks === 13) {
+                        // Try to change bid to avoid sum of 13
+                        if (expectedTricks > 0) {
+                            expectedTricks--;
+                } else {
+                            expectedTricks++;
+                        }
+                    }
+                }
+                
+                return Math.max(0, expectedTricks);
+            }
+            
+            // AI logic for playing a card
+            playCard(validCards, currentTrick, trumpSuit) {
+                if (validCards.length === 1) {
+                    // Only one valid card to play
+                    return validCards[0];
+                }
+                
+                // First player in trick
+                if (currentTrick.length === 0) {
+                    // Play highest card of longest suit if possible
+                    const suitCounts = {};
+                    for (const card of this.hand) {
+                        suitCounts[card.suit] = (suitCounts[card.suit] || 0) + 1;
+                    }
+                    
+                    // Find longest suit
+                    let longestSuit = this.hand[0].suit;
+                    let longestCount = suitCounts[longestSuit];
+                    
+                    for (const suit in suitCounts) {
+                        if (suitCounts[suit] > longestCount) {
+                            longestSuit = suit;
+                            longestCount = suitCounts[suit];
+                        }
+                    }
+                    
+                    // Play highest card of longest suit if possible
+                    const highestInLongestSuit = validCards
+                        .filter(card => card.suit === longestSuit)
+                        .sort((a, b) => b.rank - a.rank)[0];
+                    
+                    if (highestInLongestSuit) {
+                        return highestInLongestSuit;
+                    }
+                }
+                
+                // Not first player, need to follow led suit or play strategically
+                const ledSuit = currentTrick.length > 0 ? currentTrick[0].card.suit : null;
+                
+                // Determine current highest card in trick
+                let highestCard = null;
+                let highestRank = -1;
+                let trumpInTrick = false;
+                
+                for (const play of currentTrick) {
+                    if (play.card.suit === trumpSuit) {
+                        trumpInTrick = true;
+                        if (!highestCard || highestCard.suit !== trumpSuit || play.card.rank > highestRank) {
+                            highestCard = play.card;
+                            highestRank = play.card.rank;
+                        }
+                    } else if (play.card.suit === ledSuit && !trumpInTrick) {
+                        if (!highestCard || highestCard.suit !== trumpSuit && play.card.rank > highestRank) {
+                            highestCard = play.card;
+                            highestRank = play.card.rank;
+                        }
+                    }
+                }
+                
+                // Try to win the trick if possible and beneficial
+                const canWin = validCards.some(card => {
+                    if (card.suit === trumpSuit && (!highestCard || highestCard.suit !== trumpSuit || card.rank > highestRank)) {
+                        return true;
+                    }
+                    
+                    if (card.suit === ledSuit && (!highestCard || (highestCard.suit !== trumpSuit && card.rank > highestRank))) {
+                        return true;
+                    }
+                    
+                    return false;
+                });
+                
+                if (canWin && this.tricks < this.trickBid) {
+                    // Try to win if below bid
+                    for (const card of validCards) {
+                        if (card.suit === trumpSuit && (!highestCard || highestCard.suit !== trumpSuit || card.rank > highestRank)) {
+                            return card;
+                        }
+                    }
+                    
+                    for (const card of validCards) {
+                        if (card.suit === ledSuit && (!highestCard || (highestCard.suit !== trumpSuit && card.rank > highestRank))) {
+                            return card;
+                        }
+                    }
+                }
+                
+                // Can't or don't want to win, play lowest card
+                return validCards.sort((a, b) => a.rank - b.rank)[0];
+            }
+        }
+
+        // Game class definition
+        class IsraeliWhistGame {
+            constructor() {
+                this.players = [];
+                this.deck = new Deck();
+                this.currentPlayer = 0;
+                this.currentTrick = [];
+                this.trumpSuit = null;
+                this.ledSuit = null;
+                this.currentBid = null;
+                this.declarer = null;
+                this.consecutivePasses = 0;
+                this.gamePhase = 'waiting'; // waiting, firstBidding, secondBidding, playing, scoring
+                this.selectedTrickBid = null;
+                this.selectedBidSuit = null;
+                this.selectedBidTricks = null;
+                this.handNumber = 0;
+                this.gulashCount = 0;
+                this.useCardsJS = false;
+            }
+            
+            // Initialize the game
+            init() {
+                // Create players (3 AI + 1 human)
+                this.players = [
+                    new Player(0, 'North'),
+                    new Player(1, 'East'),
+                    new Player(2, 'South', true),
+                    new Player(3, 'West')
+                ];
+                
+                // Don't try to use cards.js
+                this.useCardsJS = false;
+                console.log("Using fallback card rendering");
+                
+                // Initialize game container
+                const gameContainer = document.getElementById('game-container');
+                
+                // Create game board if it doesn't exist
+                if (!document.querySelector('.game-board')) {
+                    gameContainer.innerHTML = `
+                        <div class="game-board">
+                            <div id="player-0" class="player-area player-north">
+                                <div class="player-name">North</div>
+                                <div id="bid-0" class="player-bid"></div>
+                                <div id="cards-0" class="player-cards"></div>
+                            </div>
+                            <div id="player-1" class="player-area player-east">
+                                <div class="player-name">East</div>
+                                <div id="bid-1" class="player-bid"></div>
+                                <div id="cards-1" class="player-cards"></div>
+                            </div>
+                            <div id="player-2" class="player-area player-south">
+                                <div class="player-name">South (You)</div>
+                                <div id="bid-2" class="player-bid"></div>
+                                <div id="cards-2" class="player-cards"></div>
+                            </div>
+                            <div id="player-3" class="player-area player-west">
+                                <div class="player-name">West</div>
+                                <div id="bid-3" class="player-bid"></div>
+                                <div id="cards-3" class="player-cards"></div>
+                            </div>
+                            <div class="game-center">
+                                <div id="game-status" class="game-status">Starting new game...</div>
+                                <div id="trump-indicator" class="trump-indicator"></div>
+                                <div id="turn-indicator" class="turn-indicator"></div>
+                                <div id="current-trick" class="current-trick"></div>
+                                <div class="controls">
+                                    <div id="bid-controls" class="bid-controls" style="display: none;">
+                                        <div class="bid-buttons">
+                                            <button class="bid-button" data-bid="5">5</button>
+                                            <button class="bid-button" data-bid="6">6</button>
+                                            <button class="bid-button" data-bid="7">7</button>
+                                            <button class="bid-button" data-bid="8">8</button>
+                                            <button class="bid-button" data-bid="9">9</button>
+                                            <button class="bid-button" data-bid="10">10</button>
+                                            <button class="bid-button" data-bid="11">11</button>
+                                            <button class="bid-button" data-bid="12">12</button>
+                                            <button class="bid-button" data-bid="13">13</button>
+                                        </div>
+                                        <div class="suit-buttons">
+                                            <button class="suit-button" data-suit="clubs">♣ Clubs</button>
+                                            <button class="suit-button" data-suit="diamonds">♦ Diamonds</button>
+                                            <button class="suit-button" data-suit="hearts">♥ Hearts</button>
+                                            <button class="suit-button" data-suit="spades">♠ Spades</button>
+                                            <button class="suit-button" data-suit="no-trump">NT</button>
+                                            <button id="pass-button">Pass</button>
+                                        </div>
+                                    </div>
+                                    <div id="trick-bid-controls" class="bid-controls" style="display: none;">
+                                        <div>
+                                            <button class="trick-bid-button" data-bid="0">0</button>
+                                            <button class="trick-bid-button" data-bid="1">1</button>
+                                            <button class="trick-bid-button" data-bid="2">2</button>
+                                            <button class="trick-bid-button" data-bid="3">3</button>
+                                            <button class="trick-bid-button" data-bid="4">4</button>
+                                            <button class="trick-bid-button" data-bid="5">5</button>
+                                            <button class="trick-bid-button" data-bid="6">6</button>
+                                            <button class="trick-bid-button" data-bid="7">7</button>
+                                            <button class="trick-bid-button" data-bid="8">8</button>
+                                            <button class="trick-bid-button" data-bid="9">9</button>
+                                            <button class="trick-bid-button" data-bid="10">10</button>
+                                            <button class="trick-bid-button" data-bid="11">11</button>
+                                            <button class="trick-bid-button" data-bid="12">12</button>
+                                            <button class="trick-bid-button" data-bid="13">13</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="scores-panel">
+                            <h3>Scores</h3>
+                            <div id="scores-display">
+                                <div>North: 0</div>
+                                <div>East: 0</div>
+                                <div>South (You): 0</div>
+                                <div>West: 0</div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Set up event listeners for bid buttons
+                const bidButtons = document.querySelectorAll('.bid-button');
+                for (const button of bidButtons) {
+                    button.addEventListener('click', () => {
+                        console.log("Bid button clicked:", button.dataset.bid);
+                        this.selectedBidTricks = parseInt(button.dataset.bid);
+                        
+                        // If suit is already selected, place bid
+                        if (this.selectedBidSuit) {
+                            this.handleBidButtonClick(this.selectedBidTricks, this.selectedBidSuit);
+                            this.selectedBidTricks = null;
+                            this.selectedBidSuit = null;
+                        } else {
+                            this.updateStatus(`Selected ${this.selectedBidTricks} tricks. Now select a suit.`);
+                        }
+                    });
+                }
+                
+                // Set up event listeners for suit buttons
+                const suitButtons = document.querySelectorAll('.suit-button');
+                for (const button of suitButtons) {
+                    button.addEventListener('click', () => {
+                        console.log("Suit button clicked:", button.dataset.suit);
+                        this.selectedBidSuit = button.dataset.suit;
+                        
+                        // If tricks already selected, place bid
+                        if (this.selectedBidTricks) {
+                            this.handleBidButtonClick(this.selectedBidTricks, this.selectedBidSuit);
+                            this.selectedBidTricks = null;
+                            this.selectedBidSuit = null;
+                    } else {
+                            this.updateStatus(`Selected ${this.selectedBidSuit}. Now select number of tricks.`);
+                        }
+                    });
+                }
+                
+                // Set up event listener for pass button
+                const passButton = document.getElementById('pass-button');
+                if (passButton) {
+                    passButton.addEventListener('click', () => {
+                        console.log("Pass button clicked");
+                        this.handleBidButtonClick('pass');
+                    });
+                }
+                
+                // Set up event listeners for trick bid buttons
+                const trickBidButtons = document.querySelectorAll('.trick-bid-button');
+                for (const button of trickBidButtons) {
+                    button.addEventListener('click', () => {
+                        console.log("Trick bid button clicked:", button.dataset.bid);
+                        const tricks = parseInt(button.dataset.bid);
+                        this.placeTrickBid(tricks);
+                    });
+                }
+                
+                // Set up card click handlers
+                setTimeout(() => this.setupCardClickHandlers(), 100);
+                
+                // Deal new hand
+                this.dealNewHand();
+            }
+            
+            // Deal a new hand
+            dealNewHand() {
+                // Reset game center
+                const gameCenter = document.querySelector('.game-center');
+                gameCenter.innerHTML = `
+                    <div id="game-status" class="game-status">Starting new game...</div>
+                    <div id="trump-indicator" class="trump-indicator"></div>
+                    <div id="turn-indicator" class="turn-indicator"></div>
+                    <div id="current-trick" class="current-trick"></div>
+                `;
+                
+                // Reset players
+                for (const player of this.players) {
+                    player.reset();
+                }
+                
+                // Reset game state
+                this.currentPlayer = Math.floor(Math.random() * 4); // Random first player
+                this.dealer = this.currentPlayer;
+                this.currentBid = null;
+                this.trumpSuit = null;
+                this.declarer = null;
+                this.currentTrick = [];
+                this.ledSuit = null;
+                this.consecutivePasses = 0;
+                this.gamePhase = 'firstBidding';
+                
+                // Deal cards
+                this.dealCards();
+                
+                // Update UI
+                this.updateUI();
+                this.updateStatus('First bidding phase - bid at least 5 tricks with a suit or pass');
+                
+                // Start the first bidding phase
+                setTimeout(() => this.firstBiddingPhase(), 500);
+            }
+            
+            // Add a separate method for dealing cards
+            dealCards() {
+                // Create and shuffle deck
+                const deck = [];
+                const suits = ['hearts', 'spades', 'diamonds', 'clubs'];
+                
+                for (const suit of suits) {
+                    for (let rank = 2; rank <= 14; rank++) {
+                        deck.push(new Card(suit, rank));
+                    }
+                }
+                
+                // Shuffle deck (Fisher-Yates algorithm)
+                for (let i = deck.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [deck[i], deck[j]] = [deck[j], deck[i]];
+                }
+                
+                // Deal 13 cards to each player
+                for (let i = 0; i < this.players.length; i++) {
+                    this.players[i].hand = deck.slice(i * 13, (i + 1) * 13);
+                    
+                    // Sort hand by suit and rank
+                    this.players[i].hand.sort((a, b) => {
+                        const suitOrder = { 'spades': 0, 'hearts': 1, 'diamonds': 2, 'clubs': 3 };
+                        if (a.suit !== b.suit) {
+                            return suitOrder[a.suit] - suitOrder[b.suit];
+                        }
+                        return b.rank - a.rank; // Descending rank order
+                    });
+                    
+                    // Set cards face up for human player
+                    if (this.players[i].isHuman) {
+                        for (const card of this.players[i].hand) {
+                            card.faceUp = true;
+                        }
+                    }
+                }
+            }
+            
+            // First bidding phase logic
+            async firstBiddingPhase() {
+                console.log("First bidding phase, current player:", this.currentPlayer);
+                
+                // Update UI to show current player
+                this.updateUI();
+                
+                // If it's AI's turn, make a bid
+                if (!this.players[this.currentPlayer].isHuman) {
+                    // AI bidding logic
+                    setTimeout(() => {
+                        // Simple AI bidding strategy
+                        if (this.currentBid) {
+                            // Decide whether to pass or outbid
+                            const shouldBid = Math.random() > 0.6; // 40% chance to bid
+                            
+                            if (shouldBid) {
+                                // Outbid current bid
+                                let newTricks = this.currentBid.tricks;
+                                let newSuit;
+                                
+                                // Try to find a higher suit
+                                const suitRanks = { 'clubs': 1, 'diamonds': 2, 'hearts': 3, 'spades': 4, 'no-trump': 5 };
+                                const currentSuitRank = suitRanks[this.currentBid.suit];
+                                
+                                // Find suits higher than current bid
+                                const higherSuits = Object.keys(suitRanks).filter(suit => 
+                                    suitRanks[suit] > currentSuitRank
+                                );
+                                
+                                if (higherSuits.length > 0) {
+                                    // Can outbid with same tricks but higher suit
+                                    newSuit = higherSuits[Math.floor(Math.random() * higherSuits.length)];
+                                } else {
+                                    // Need to increase tricks
+                                    newTricks++;
+                                    // Pick any suit
+                                    const suits = Object.keys(suitRanks);
+                                    newSuit = suits[Math.floor(Math.random() * suits.length)];
+                                }
+                                
+                                // Make sure bid is valid
+                                if (newTricks <= 13) {
+                                    this.handleBidButtonClick(newTricks, newSuit);
+                                } else {
+                                    // Too high, just pass
+                                    this.handleBidButtonClick('pass');
+                                }
+                            } else {
+                                // Pass
+                                this.handleBidButtonClick('pass');
+                            }
+                        } else {
+                            // First bid
+                            const shouldBid = Math.random() > 0.3; // 70% chance to bid
+                            
+                            if (shouldBid) {
+                                // Make initial bid
+                                const tricks = 5 + Math.floor(Math.random() * 3); // 5-7 tricks
+                                const suits = ['clubs', 'diamonds', 'hearts', 'spades', 'no-trump'];
+                                const suit = suits[Math.floor(Math.random() * suits.length)];
+                                
+                                this.handleBidButtonClick(tricks, suit);
+                } else {
+                                // Pass
+                                this.handleBidButtonClick('pass');
+                            }
+                        }
+                    }, 1000);
+                } else {
+                    // Human player's turn, wait for UI interaction
+                    this.updateStatus(`Your turn to bid. Current highest bid: ${this.currentBid ? 
+                        this.currentBid.tricks + ' ' + this.currentBid.suit : 'None'}`);
+                    
+                    // Create bid controls if they don't exist
+                    this.createBidControls();
+                }
+            }
+            
+            // Add a method to create bid controls if they don't exist
+            createBidControls() {
+                console.log("Creating bid controls");
+                
+                // Find the game center
+                const gameCenter = document.querySelector('.game-center');
+                if (!gameCenter) {
+                    console.error("Game center not found!");
+                    return;
+                }
+                
+                // Find or create the controls container
+                let controls = document.querySelector('.controls');
+                if (!controls) {
+                    console.log("Controls container not found, creating it");
+                    controls = document.createElement('div');
+                    controls.className = 'controls';
+                    gameCenter.appendChild(controls);
+                }
+                
+                // Clear existing controls
+                controls.innerHTML = '';
+                
+                // Create bid controls
+                const bidControls = document.createElement('div');
+                bidControls.id = 'bid-controls';
+                bidControls.className = 'bid-controls';
+                bidControls.style.display = 'block';
+                
+                // Create bid buttons
+                const bidButtonsDiv = document.createElement('div');
+                bidButtonsDiv.className = 'bid-buttons';
+                
+                for (let i = 5; i <= 13; i++) {
+                    const button = document.createElement('button');
+                    button.className = 'bid-button';
+                    button.dataset.bid = i;
+                    button.textContent = i;
+                    button.addEventListener('click', () => {
+                        console.log("Bid button clicked:", i);
+                        this.selectedBidTricks = i;
+                        
+                        // If suit is already selected, place bid
+                        if (this.selectedBidSuit) {
+                            this.handleBidButtonClick(this.selectedBidTricks, this.selectedBidSuit);
+                            this.selectedBidTricks = null;
+                            this.selectedBidSuit = null;
+                        } else {
+                            this.updateStatus(`Selected ${this.selectedBidTricks} tricks. Now select a suit.`);
+                        }
+                    });
+                    
+                    bidButtonsDiv.appendChild(button);
+                }
+                
+                // Create suit buttons
+                const suitButtonsDiv = document.createElement('div');
+                suitButtonsDiv.className = 'suit-buttons';
+                
+                const suits = [
+                    { name: 'clubs', symbol: '♣ Clubs' },
+                    { name: 'diamonds', symbol: '♦ Diamonds' },
+                    { name: 'hearts', symbol: '♥ Hearts' },
+                    { name: 'spades', symbol: '♠ Spades' },
+                    { name: 'no-trump', symbol: 'NT' }
+                ];
+                
+                for (const suit of suits) {
+                    const button = document.createElement('button');
+                    button.className = 'suit-button';
+                    button.dataset.suit = suit.name;
+                    button.textContent = suit.symbol;
+                    button.addEventListener('click', () => {
+                        console.log("Suit button clicked:", suit.name);
+                        this.selectedBidSuit = suit.name;
+                        
+                        // If tricks already selected, place bid
+                        if (this.selectedBidTricks) {
+                            this.handleBidButtonClick(this.selectedBidTricks, this.selectedBidSuit);
+                            this.selectedBidTricks = null;
+                            this.selectedBidSuit = null;
+                        } else {
+                            this.updateStatus(`Selected ${this.selectedBidSuit}. Now select number of tricks.`);
+                        }
+                    });
+                    
+                    suitButtonsDiv.appendChild(button);
+                }
+                
+                // Create pass button
+                const passButton = document.createElement('button');
+                passButton.id = 'pass-button';
+                passButton.textContent = 'Pass';
+                passButton.addEventListener('click', () => {
+                    console.log("Pass button clicked");
+                    this.handleBidButtonClick('pass');
+                });
+                
+                suitButtonsDiv.appendChild(passButton);
+                
+                // Add everything to the controls
+                bidControls.appendChild(bidButtonsDiv);
+                bidControls.appendChild(suitButtonsDiv);
+                controls.appendChild(bidControls);
+                
+                // Also create trick bid controls
+                const trickBidControls = document.createElement('div');
+                trickBidControls.id = 'trick-bid-controls';
+                trickBidControls.className = 'bid-controls';
+                trickBidControls.style.display = 'none';
+                
+                const trickBidButtonsDiv = document.createElement('div');
+                
+                for (let i = 0; i <= 13; i++) {
+                    const button = document.createElement('button');
+                    button.className = 'trick-bid-button';
+                    button.dataset.bid = i;
+                    button.textContent = i;
+                    button.addEventListener('click', () => {
+                        console.log("Trick bid button clicked:", i);
+                        this.placeTrickBid(i);
+                    });
+                    
+                    trickBidButtonsDiv.appendChild(button);
+                }
+                
+                trickBidControls.appendChild(trickBidButtonsDiv);
+                controls.appendChild(trickBidControls);
+                
+                console.log("Bid controls created successfully");
+            }
+            
+            // Second bidding phase logic
+            async secondBiddingPhase() {
+                // Update UI
+                this.updateUI();
+                
+                // Check if all players have bid
+                const allBid = this.players.every(player => player.trickBid !== null);
+                if (allBid) {
+                    // Start playing phase
+                    this.gamePhase = 'playing';
+                    this.currentPlayer = (this.declarer + 1) % this.players.length; // Player after declarer leads
+                    setTimeout(() => this.playingPhase(), 1000);
+                    return;
+                }
+                
+                // If it's AI's turn, make a bid
+                if (!this.players[this.currentPlayer].isHuman) {
+                    setTimeout(() => {
+                        // Simple AI trick bidding strategy
+                        const hand = this.players[this.currentPlayer].hand;
+                        
+                        // Count high cards and trump cards
+                        let highCards = 0;
+                        let trumpCards = 0;
+                        
+                        for (const card of hand) {
+                            if (card.rank >= 11) highCards++; // Count face cards as high
+                            if (card.suit === this.trumpSuit) trumpCards++;
+                        }
+                        
+                        // Estimate tricks based on high cards and trump cards
+                        let estimatedTricks = Math.floor((highCards + trumpCards * 0.5) / 2);
+                        
+                        // Adjust based on position
+                        if (this.currentPlayer === this.declarer) {
+                            // Declarer bids higher
+                            estimatedTricks += 2;
+                        } else {
+                            // Add some randomness
+                            estimatedTricks += Math.floor(Math.random() * 2);
+                        }
+                        
+                        // Ensure bid is within bounds
+                        estimatedTricks = Math.max(0, Math.min(13, estimatedTricks));
+                        
+                        // Place bid
+                        this.placeTrickBid(estimatedTricks);
+                    }, 1000);
+                } else {
+                    // Human player's turn
+                    this.updateStatus(`Your turn to bid how many tricks you'll take. Trump is ${this.trumpSuit}.`);
+                    
+                    // Show trick bid controls
+                    const trickBidControls = document.getElementById('trick-bid-controls');
+                    if (trickBidControls) {
+                        trickBidControls.style.display = 'block';
+                    }
+                }
+            }
+            
+            // Playing phase logic
+            async playingPhase() {
+                console.log("Playing phase started, current player:", this.currentPlayer);
+                this.updateUI();
+                this.updateStatus('Playing phase - follow suit if possible');
+                
+                // Check if need to start a new trick
+                if (this.currentTrick.length === this.players.length) {
+                    console.log("Trick complete, finishing trick");
+                    this.finishTrick();
+                    return;
+                }
+                
+                // Determine valid cards
+                const validCards = this.getValidCards(this.currentPlayer);
+                console.log("Valid cards for player", this.currentPlayer, ":", validCards);
+                
+                if (!this.players[this.currentPlayer].isHuman) {
+                    // AI turn
+                    console.log("AI turn");
+                    setTimeout(() => {
+                        const cardToPlay = this.players[this.currentPlayer].playCard(
+                            validCards,
+                            this.currentTrick,
+                            this.trumpSuit
+                        );
+                        
+                        console.log("AI playing card:", cardToPlay);
+                        this.playCard(cardToPlay);
+                    }, 1000); // AI thinking time
+                } else {
+                    // Human turn, wait for UI interaction
+                    console.log("Human turn, highlighting valid cards");
+                    this.highlightValidCards(validCards);
+                    this.updateStatus("Your turn - click a card to play");
+                    
+                    // Add click handlers directly to valid cards
+                    const cardsArea = document.getElementById('cards-2');
+                    
+                    // Remove any existing click handlers
+                    const allCards = cardsArea.querySelectorAll('.card');
+                    for (const cardElement of allCards) {
+                        // Clone and replace to remove event listeners
+                        const newCard = cardElement.cloneNode(true);
+                        cardElement.parentNode.replaceChild(newCard, cardElement);
+                    }
+                    
+                    // Add click handlers only to valid cards
+                    for (const card of validCards) {
+                        const cardElement = cardsArea.querySelector(`[data-suit="${card.suit}"][data-rank="${card.rank}"]`);
+                        if (cardElement) {
+                            cardElement.addEventListener('click', () => {
+                                console.log("Human clicked valid card:", card);
+                                this.playCard(card);
+                            });
+                        }
+                    }
+                    
+                    // Add invalid card handler
+                    const invalidCards = this.players[this.currentPlayer].hand.filter(card => 
+                        !validCards.some(vc => vc.suit === card.suit && vc.rank === card.rank)
+                    );
+                    
+                    for (const card of invalidCards) {
+                        const cardElement = cardsArea.querySelector(`[data-suit="${card.suit}"][data-rank="${card.rank}"]`);
+                        if (cardElement) {
+                            cardElement.addEventListener('click', () => {
+                                console.log("Human clicked invalid card:", card);
+                                // Visual feedback for invalid card
+                                cardElement.classList.add('invalid-card');
+                                this.updateStatus('You must follow suit if possible!');
+                                
+                                // Remove the invalid class after animation
+                                setTimeout(() => {
+                                    cardElement.classList.remove('invalid-card');
+                                }, 1000);
+                            });
+                        }
+                    }
+                }
+            }
+            
+            // Get valid cards for a player
+            getValidCards(playerIndex) {
+                const player = this.players[playerIndex];
+                
+                if (!this.ledSuit) {
+                    // First to play, any card is valid
+                    return player.hand;
+                }
+                
+                // Check if player has cards of led suit
+                const hasSuit = player.hand.some(card => card.suit === this.ledSuit);
+                
+                if (hasSuit) {
+                    // Must follow suit
+                    return player.hand.filter(card => card.suit === this.ledSuit);
+                        } else {
+                    // Can play any card
+                    return player.hand;
+                }
+            }
+            
+            // Finish current trick
+            async finishTrick() {
+                console.log("Finishing trick");
+                
+                // Determine winner
+                let highestRank = -1;
+                let winner = -1;
+                let winningCard = null;
+                
+                // First, check if any trump cards were played
+                const trumpPlays = this.currentTrick.filter(play => play.card.suit === this.trumpSuit);
+                
+                if (trumpPlays.length > 0) {
+                    // Trump played, highest trump wins
+                    console.log("Trump cards played:", trumpPlays);
+                    for (const play of trumpPlays) {
+                        if (play.card.rank > highestRank) {
+                            highestRank = play.card.rank;
+                            winner = play.player;
+                            winningCard = play.card;
+                        }
+                    }
+                    } else {
+                    // No trump, highest card of led suit wins
+                    const ledSuit = this.currentTrick[0].card.suit;
+                    console.log("No trump played, led suit:", ledSuit);
+                    
+                    for (const play of this.currentTrick) {
+                        if (play.card.suit === ledSuit && play.card.rank > highestRank) {
+                            highestRank = play.card.rank;
+                            winner = play.player;
+                            winningCard = play.card;
+                        }
+                    }
+                }
+                
+                console.log("Trick winner:", this.players[winner].name, "with card:", winningCard);
+                
+                // Update player tricks count
+                this.players[winner].tricks++;
+                
+                // Create a winner message
+                const winnerMessage = document.createElement('div');
+                winnerMessage.className = 'trick-winner-message';
+                winnerMessage.textContent = `${this.players[winner].name} wins the trick!`;
+                
+                // Add the message to the game center
+                const gameCenter = document.querySelector('.game-center');
+                gameCenter.appendChild(winnerMessage);
+                
+                this.updateStatus(`${this.players[winner].name} wins the trick!`);
+                
+                // Update UI to highlight winning card
+                this.updateUI();
+                
+                // Clear trick and start new one after a delay
+                setTimeout(() => {
+                    // Remove the winner message
+                    winnerMessage.remove();
+                    
+                    this.currentTrick = [];
+                    this.ledSuit = null;
+                    this.currentPlayer = winner; // Winner leads next trick
+                    
+                    // If all cards played, move to scoring phase
+                    if (this.players[0].hand.length === 0) {
+                        console.log("All cards played, moving to scoring phase");
+                        this.gamePhase = 'scoring';
+                        this.calculateScores();
+                        return;
+                    }
+                    
+                    console.log("Starting next trick");
+                    this.playingPhase();
+                }, 2000);
+            }
+            
+            // Calculate scores at end of hand
+            calculateScores() {
+                console.log("Calculating scores");
+                this.updateStatus("Game over! Calculating scores...");
+                
+                // Determine if game is "over" or "under"
+                const totalBids = this.players.reduce((sum, player) => sum + player.trickBid, 0);
+                const gameType = totalBids > 13 ? "over" : "under";
+                
+                console.log(`Game type: ${gameType}, Total bids: ${totalBids}`);
+                
+                // Calculate scores for each player
+                for (let i = 0; i < this.players.length; i++) {
+                    const player = this.players[i];
+                    const bid = player.trickBid;
+                    const tricks = player.tricks;
+                    
+                    console.log(`${player.name}: Bid ${bid}, Made ${tricks}`);
+                    
+                    let roundScore = 0;
+                    
+                    if (bid === 0) {
+                        // Special scoring for zero bids
+                        if (tricks === 0) {
+                            // Made zero bid
+                            roundScore = gameType === "over" ? 30 : 50;
+                            console.log(`${player.name} made zero bid: ${roundScore} points`);
+                } else {
+                            // Failed zero bid
+                            roundScore = -50 + (tricks - 1) * 10;
+                            console.log(`${player.name} failed zero bid (took ${tricks}): ${roundScore} points`);
+                        }
+                    } else {
+                        // Normal bid scoring
+                        if (tricks === bid) {
+                            // Exact bid
+                            roundScore = 10 + (bid * bid);
+                            console.log(`${player.name} made exact bid: ${roundScore} points`);
+                        } else {
+                            // Over/under bid
+                            const difference = Math.abs(tricks - bid);
+                            roundScore = -10 * difference;
+                            console.log(`${player.name} missed bid by ${difference}: ${roundScore} points`);
+                        }
+                    }
+                    
+                    // Update player score
+                    player.score += roundScore;
+                }
+                
+                // Update scores display
+                this.updateScoresDisplay();
+                
+                // Show detailed scoring results
+                this.showScoringResults();
+                
+                // Add a "New Round" button
+                this.addNewRoundButton();
+            }
+            
+            // Fix the showScoringResults method to improve the score display
+            showScoringResults() {
+                // Create a scoring results container
+                const resultsContainer = document.createElement('div');
+                resultsContainer.className = 'scoring-results';
+                resultsContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+                resultsContainer.style.padding = '20px';
+                resultsContainer.style.borderRadius = '10px';
+                resultsContainer.style.maxWidth = '400px';
+                resultsContainer.style.margin = '0 auto';
+                resultsContainer.style.marginTop = '20px';
+                resultsContainer.style.color = 'white'; // Ensure text is visible
+                
+                // Add a title
+                const title = document.createElement('h3');
+                title.textContent = 'Round Results';
+                title.style.textAlign = 'center';
+                title.style.color = 'gold';
+                title.style.marginBottom = '15px';
+                resultsContainer.appendChild(title);
+                
+                // Add a table for results
+                const table = document.createElement('table');
+                table.style.width = '100%';
+                table.style.borderCollapse = 'collapse';
+                table.style.marginTop = '10px';
+                table.style.color = 'white';
+                
+                // Add table header
+                const thead = document.createElement('thead');
+                const headerRow = document.createElement('tr');
+                
+                const headers = ['Player', 'Bid', 'Tricks', 'Score', 'Total'];
+                headers.forEach(headerText => {
+                    const th = document.createElement('th');
+                    th.textContent = headerText;
+                    th.style.padding = '8px';
+                    th.style.borderBottom = '1px solid #ddd';
+                    th.style.textAlign = 'left';
+                    headerRow.appendChild(th);
+                });
+                
+                thead.appendChild(headerRow);
+                table.appendChild(thead);
+                
+                // Add table body
+                const tbody = document.createElement('tbody');
+                
+                for (const player of this.players) {
+                    const row = document.createElement('tr');
+                    
+                    // Player name
+                    const nameCell = document.createElement('td');
+                    nameCell.textContent = player.name;
+                    nameCell.style.padding = '8px';
+                    nameCell.style.borderBottom = '1px solid #333';
+                    row.appendChild(nameCell);
+                    
+                    // Bid
+                    const bidCell = document.createElement('td');
+                    bidCell.textContent = player.trickBid;
+                    bidCell.style.padding = '8px';
+                    bidCell.style.borderBottom = '1px solid #333';
+                    row.appendChild(bidCell);
+                    
+                    // Tricks
+                    const tricksCell = document.createElement('td');
+                    tricksCell.textContent = player.tricks;
+                    tricksCell.style.padding = '8px';
+                    tricksCell.style.borderBottom = '1px solid #333';
+                    row.appendChild(tricksCell);
+                    
+                    // Round score
+                    const roundScore = this.calculatePlayerRoundScore(player);
+                    const scoreCell = document.createElement('td');
+                    scoreCell.textContent = roundScore > 0 ? `+${roundScore}` : roundScore;
+                    scoreCell.style.padding = '8px';
+                    scoreCell.style.borderBottom = '1px solid #333';
+                    scoreCell.style.color = roundScore > 0 ? 'lime' : 'red';
+                    row.appendChild(scoreCell);
+                    
+                    // Total score
+                    const totalCell = document.createElement('td');
+                    totalCell.textContent = player.score;
+                    totalCell.style.padding = '8px';
+                    totalCell.style.borderBottom = '1px solid #333';
+                    totalCell.style.fontWeight = 'bold';
+                    row.appendChild(totalCell);
+                    
+                    tbody.appendChild(row);
+                }
+                
+                table.appendChild(tbody);
+                resultsContainer.appendChild(table);
+                
+                // Add to game center
+                const gameCenter = document.querySelector('.game-center');
+                gameCenter.innerHTML = '';
+                gameCenter.appendChild(resultsContainer);
+            }
+            
+            // Helper method to calculate a player's round score
+            calculatePlayerRoundScore(player) {
+                const bid = player.trickBid;
+                const tricks = player.tricks;
+                
+                // Determine if game is "over" or "under"
+                const totalBids = this.players.reduce((sum, player) => sum + player.trickBid, 0);
+                const gameType = totalBids > 13 ? "over" : "under";
+                
+                if (bid === 0) {
+                    // Special scoring for zero bids
+                    if (tricks === 0) {
+                        // Made zero bid
+                        return gameType === "over" ? 30 : 50;
+                    } else {
+                        // Failed zero bid
+                        return -50 + (tricks - 1) * 10;
+                    }
+                } else {
+                    // Normal bid scoring
+                    if (tricks === bid) {
+                        // Exact bid
+                        return 10 + (bid * bid);
+                    } else {
+                        // Over/under bid
+                        const difference = Math.abs(tricks - bid);
+                        return -10 * difference;
+                    }
+                }
+            }
+            
+            // Add this method to add a New Round button
+            addNewRoundButton() {
+                const newRoundButton = document.createElement('button');
+                newRoundButton.textContent = 'Start New Round';
+                newRoundButton.style.marginTop = '20px';
+                newRoundButton.style.padding = '10px 20px';
+                newRoundButton.style.fontSize = '16px';
+                newRoundButton.style.backgroundColor = '#3c3b6e';
+                newRoundButton.style.color = 'white';
+                newRoundButton.style.border = 'none';
+                newRoundButton.style.borderRadius = '5px';
+                newRoundButton.style.cursor = 'pointer';
+                
+                newRoundButton.addEventListener('click', () => {
+                    this.startNewRound();
+                });
+                
+                const gameCenter = document.querySelector('.game-center');
+                gameCenter.appendChild(newRoundButton);
+            }
+            
+            // Fix the startNewRound method
+            startNewRound() {
+                // Reset game center first
+                const gameCenter = document.querySelector('.game-center');
+                gameCenter.innerHTML = `
+                    <div id="game-status" class="game-status">Starting new round...</div>
+                    <div id="trump-indicator" class="trump-indicator"></div>
+                    <div id="turn-indicator" class="turn-indicator"></div>
+                    <div id="current-trick" class="current-trick"></div>
+                `;
+                
+                // Reset players for new round (keep scores)
+                for (const player of this.players) {
+                    player.reset();
+                }
+                
+                // Reset game state
+                this.currentPlayer = (this.dealer + 1) % this.players.length;
+                this.dealer = this.currentPlayer;
+                this.currentBid = null;
+                this.trumpSuit = null;
+                this.declarer = null;
+                this.currentTrick = [];
+                this.ledSuit = null;
+                this.consecutivePasses = 0;
+                this.gamePhase = 'firstBidding';
+                
+                // Deal cards
+                this.dealCards();
+                
+                // Update UI
+                this.updateUI();
+                this.updateStatus('New round started! First bidding phase...');
+                
+                // Start the first bidding phase
+                setTimeout(() => this.firstBiddingPhase(), 500);
+            }
+            
+            // Handle bid button click
+            handleBidButtonClick(tricks, suit) {
+                console.log(`Handling bid: ${tricks} ${suit}`);
+                
+                // If it's a pass
+                if (tricks === 'pass') {
+                    console.log("Player passes");
+                    this.consecutivePasses++;
+                    this.updateStatus(`${this.players[this.currentPlayer].name} passes`);
+                    
+                    // Check if all players have passed
+                    if (this.consecutivePasses === this.players.length) {
+                        // All players passed, redeal
+                        this.updateStatus('All players passed. Redealing...');
+                        setTimeout(() => this.dealNewHand(), 1500);
+                        return;
+                    }
+                    
+                    // Check if three players passed and we have a bid
+                    if (this.consecutivePasses === this.players.length - 1 && this.currentBid) {
+                        // Bidding is over, move to second bidding phase
+                        this.declarer = this.currentBid.player;
+                        this.trumpSuit = this.currentBid.suit;
+                        
+                        this.updateStatus(`${this.players[this.declarer].name} wins the bidding with ${this.currentBid.tricks} ${this.currentBid.suit}`);
+                        
+                        setTimeout(() => {
+                            this.gamePhase = 'secondBidding';
+                            this.currentPlayer = 0; // Start with first player
+                            this.secondBiddingPhase();
+                        }, 1500);
+                    return;
+                }
+                
+                    // Move to next player
+                    this.currentPlayer = (this.currentPlayer + 1) % this.players.length;
+                    setTimeout(() => this.firstBiddingPhase(), 500);
+                    return;
+                }
+                
+                // Player makes a bid
+                const numTricks = parseInt(tricks);
+                
+                // Check if bid is valid
+                if (this.currentBid && (numTricks < this.currentBid.tricks || 
+                    (numTricks === this.currentBid.tricks && this.suitRank(suit) <= this.suitRank(this.currentBid.suit)))) {
+                    this.updateStatus('Invalid bid. Must be higher than current bid.');
+                    return;
+                }
+                
+                // Valid bid
+                this.currentBid = {
+                    player: this.currentPlayer,
+                    tricks: numTricks,
+                    suit: suit
+                };
+                
+                this.players[this.currentPlayer].bid = {
+                    tricks: numTricks,
+                    suit: suit
+                };
+                
+                this.consecutivePasses = 0;
+                this.updateStatus(`${this.players[this.currentPlayer].name} bids ${numTricks} ${suit}`);
+                
+                // Move to next player
+                this.currentPlayer = (this.currentPlayer + 1) % this.players.length;
+                setTimeout(() => this.firstBiddingPhase(), 500);
+            }
+            
+            // Handle pass button click
+            handlePassButtonClick() {
+                if (this.gamePhase !== 'firstBidding' || this.currentPlayer !== 2) {
+                    return; // Not human player's turn or not in first bidding phase
+                }
+                
+                // Place pass
+                this.placePass();
+            }
+            
+            // Handle trick bid button click
+            handleTrickBidButtonClick(tricks) {
+                if (this.gamePhase !== 'secondBidding' || this.currentPlayer !== 2) {
+                    return; // Not human player's turn or not in second bidding phase
+                }
+                
+                // Validate trick bid for last bidder
+                const isLastBidder = this.players.filter(p => p.trickBid === null).length === 1;
+                
+                if (isLastBidder) {
+                    // Calculate sum of bids so far
+                    const totalBids = this.players.reduce((sum, p) => 
+                        sum + (p.trickBid !== null ? p.trickBid : 0), 0);
+                    
+                    if (totalBids + tricks === 13) {
+                        this.updateStatus('Last bidder cannot make total bids equal to 13');
+                        return;
+                    }
+                }
+                
+                // Place trick bid
+                this.placeTrickBid(tricks);
+            }
+            
+            // Get rank of suit for comparison
+            getSuitRank(suit) {
+                const ranks = {
+                    'clubs': 1,
+                    'diamonds': 2,
+                    'hearts': 3,
+                    'spades': 4,
+                    'no-trump': 5
+                };
+                
+                return ranks[suit] || 0;
+            }
+            
+            // Highlight valid cards for human player
+            highlightValidCards(validCards) {
+                const cardsArea = document.getElementById('cards-2'); // Human player
+                
+                // Reset all cards
+                for (const cardElement of cardsArea.children) {
+                    cardElement.style.opacity = '0.6';
+                    cardElement.style.cursor = 'not-allowed';
+                    cardElement.classList.remove('valid-card');
+                }
+                
+                // Highlight valid cards
+                for (const card of validCards) {
+                    const cardElement = cardsArea.querySelector(`[data-suit="${card.suit}"][data-rank="${card.rank}"]`);
+                    if (cardElement) {
+                        cardElement.style.opacity = '1';
+                        cardElement.style.cursor = 'pointer';
+                        cardElement.classList.add('valid-card');
+                    }
+                }
+            }
+            
+            // Update UI based on game state
+            updateUI() {
+                // Update player areas
+                for (let i = 0; i < this.players.length; i++) {
+                    const playerArea = document.getElementById(`player-${i}`);
+                    const cardsArea = document.getElementById(`cards-${i}`);
+                    const bidArea = document.getElementById(`bid-${i}`);
+                    
+                    if (!playerArea || !cardsArea || !bidArea) continue;
+                    
+                    // Clear existing cards
+                    cardsArea.innerHTML = '';
+                    
+                    // Add cards without click handlers
+                    for (const card of this.players[i].hand) {
+                        const cardElement = card.createHTML();
+                        cardsArea.appendChild(cardElement);
+                    }
+                    
+                    // Update bid information
+                    if (this.gamePhase === 'firstBidding') {
+                        if (this.players[i].bid) {
+                            bidArea.textContent = `Bid: ${this.players[i].bid.tricks} ${this.players[i].bid.suit}`;
+                    } else {
+                            bidArea.textContent = '';
+                        }
+                    } else if (this.gamePhase === 'secondBidding' || this.gamePhase === 'playing' || this.gamePhase === 'scoring') {
+                        if (this.players[i].trickBid !== null) {
+                            bidArea.textContent = `Bid: ${this.players[i].trickBid} tricks (Made: ${this.players[i].tricks})`;
+                        } else {
+                            bidArea.textContent = '';
+                        }
+                    }
+                    
+                    // Highlight current player
+                    if (i === this.currentPlayer) {
+                        playerArea.classList.add('active-player');
+                    } else {
+                        playerArea.classList.remove('active-player');
+                    }
+                }
+                
+                // Update current trick display
+                const trickArea = document.getElementById('current-trick');
+                if (trickArea) {
+                    trickArea.innerHTML = '';
+                    
+                    // Determine winning card in current trick
+                    let winningCardIndex = -1;
+                    if (this.currentTrick.length > 0) {
+                        winningCardIndex = this.getWinningCardIndex();
+                    }
+                    
+                    // Display cards in the current trick with player names
+                    for (let i = 0; i < this.currentTrick.length; i++) {
+                        const play = this.currentTrick[i];
+                        const card = play.card;
+                        card.faceUp = true;
+                        
+                        const trickCardDiv = document.createElement('div');
+                        trickCardDiv.className = 'trick-card';
+                        
+                        const playerNameDiv = document.createElement('div');
+                        playerNameDiv.className = 'trick-player';
+                        playerNameDiv.textContent = this.players[play.player].name;
+                        trickCardDiv.appendChild(playerNameDiv);
+                        
+                        const cardElement = card.createHTML();
+                        if (i === winningCardIndex) {
+                            cardElement.classList.add('winning-card');
+                        }
+                        trickCardDiv.appendChild(cardElement);
+                        
+                        trickArea.appendChild(trickCardDiv);
+                    }
+                }
+                
+                // Update trump indicator
+                const trumpIndicator = document.getElementById('trump-indicator');
+                if (trumpIndicator) {
+                    if (this.trumpSuit) {
+                        trumpIndicator.textContent = `Trump: ${this.trumpSuit}`;
+                    } else {
+                        trumpIndicator.textContent = '';
+                    }
+                }
+                
+                // Update turn indicator
+                const turnIndicator = document.getElementById('turn-indicator');
+                if (turnIndicator) {
+                    turnIndicator.textContent = `Current player: ${this.players[this.currentPlayer].name}`;
+                }
+                
+                // Update led suit indicator if in playing phase
+                if (this.gamePhase === 'playing' && this.ledSuit) {
+                    const gameStatus = document.getElementById('game-status');
+                    if (gameStatus) {
+                        const ledSuitIndicator = document.getElementById('led-suit-indicator') || document.createElement('div');
+                        ledSuitIndicator.id = 'led-suit-indicator';
+                        ledSuitIndicator.textContent = `Led suit: ${this.ledSuit} (must follow if possible)`;
+                        ledSuitIndicator.style.color = '#ffcc00';
+                        ledSuitIndicator.style.marginTop = '10px';
+                        
+                        if (gameStatus.nextElementSibling !== ledSuitIndicator) {
+                            gameStatus.parentNode.insertBefore(ledSuitIndicator, gameStatus.nextSibling);
+                        }
+                    }
+                } else {
+                    const ledSuitIndicator = document.getElementById('led-suit-indicator');
+                    if (ledSuitIndicator) {
+                        ledSuitIndicator.remove();
+                    }
+                }
+                
+                // Update controls based on game phase
+                const bidControls = document.getElementById('bid-controls');
+                const trickBidControls = document.getElementById('trick-bid-controls');
+                
+                if (bidControls && trickBidControls) {
+                    if (this.gamePhase === 'firstBidding' && this.players[this.currentPlayer].isHuman) {
+                        bidControls.style.display = 'block';
+                        trickBidControls.style.display = 'none';
+                    } else if (this.gamePhase === 'secondBidding' && this.players[this.currentPlayer].isHuman) {
+                        bidControls.style.display = 'none';
+                        trickBidControls.style.display = 'block';
+                    } else {
+                        bidControls.style.display = 'none';
+                        trickBidControls.style.display = 'none';
+                    }
+                }
+            }
+            
+            // Add this helper method to determine the winning card in the current trick
+            getWinningCardIndex() {
+                if (this.currentTrick.length === 0) return -1;
+                
+                let winningIndex = 0;
+                let winningCard = this.currentTrick[0].card;
+                const ledSuit = this.currentTrick[0].card.suit;
+                
+                for (let i = 1; i < this.currentTrick.length; i++) {
+                    const card = this.currentTrick[i].card;
+                    
+                    // Trump card beats any non-trump card
+                    if (card.suit === this.trumpSuit && winningCard.suit !== this.trumpSuit) {
+                        winningIndex = i;
+                        winningCard = card;
+                    }
+                    // Higher trump beats lower trump
+                    else if (card.suit === this.trumpSuit && winningCard.suit === this.trumpSuit && card.rank > winningCard.rank) {
+                        winningIndex = i;
+                        winningCard = card;
+                    }
+                    // Higher card of led suit beats lower card of led suit (if no trumps involved)
+                    else if (card.suit === ledSuit && winningCard.suit === ledSuit && card.rank > winningCard.rank) {
+                        winningIndex = i;
+                        winningCard = card;
+                    }
+                }
+                
+                return winningIndex;
+            }
+            
+            // Handle card click for human player
+            handleCardClick(card) {
+                if (this.gamePhase !== 'playing' || this.currentPlayer !== 2) {
+                    return; // Not human player's turn or not in playing phase
+                }
+                
+                // First, validate the card is legal to play
+                const validCards = this.getValidCards(this.currentPlayer);
+                const isValid = validCards.some(c => c.suit === card.suit && c.rank === card.rank);
+                
+                if (!isValid) {
+                    this.updateStatus(`Invalid card play: ${this.players[this.currentPlayer].name} must follow suit if possible`);
+                    return false; // Don't play the card if it's invalid
+                }
+                
+                // Play the card
+                this.playCard(card);
+            }
+            
+            // Update status message
+            updateStatus(message) {
+                const statusElement = document.getElementById('game-status');
+                if (statusElement) {
+                    statusElement.textContent = message;
+                }
+            }
+            
+            // Update scores display
+            updateScoresDisplay() {
+                const scoresDisplay = document.getElementById('scores-display');
+                scoresDisplay.innerHTML = '';
+                
+                for (let i = 0; i < this.players.length; i++) {
+                    const scoreElement = document.createElement('div');
+                    scoreElement.textContent = `${this.players[i].name}: ${this.players[i].score}`;
+                    scoresDisplay.appendChild(scoreElement);
+                }
+            }
+
+            // Add these methods to the IsraeliWhistGame class
+            placeBid(tricks, suit) {
+                this.currentBid = {
+                    player: this.currentPlayer,
+                    tricks: tricks,
+                    suit: suit
+                };
+                
+                this.players[this.currentPlayer].bid = {
+                    tricks: tricks,
+                    suit: suit
+                };
+                
+                this.consecutivePasses = 0;
+                this.updateStatus(`${this.players[this.currentPlayer].name} bids ${tricks} ${suit}`);
+                
+                // Move to next player
+                this.currentPlayer = (this.currentPlayer + 1) % this.players.length;
+                
+                this.firstBiddingPhase();
+            }
+
+            placePass() {
+                this.consecutivePasses++;
+                this.updateStatus(`${this.players[this.currentPlayer].name} passes`);
+                
+                // Check if bidding is complete (all passed or after a winning bid)
+                if (this.currentBid && this.consecutivePasses === 3) {
+                    // Winning bid established
+                    this.trumpSuit = this.currentBid.suit;
+                    this.declarer = this.currentBid.player;
+                    this.updateStatus(`${this.players[this.declarer].name} wins bid with ${this.currentBid.tricks} ${this.trumpSuit}`);
+                    
+                    // Start second bidding phase
+                    this.currentPlayer = (this.declarer + 1) % this.players.length;
+                    this.gamePhase = 'secondBidding';
+                    setTimeout(() => this.secondBiddingPhase(), 1500);
+                } else if (!this.currentBid && this.consecutivePasses === 4) {
+                    // All players passed initially, redeal (Gulash)
+                    this.gulashCount++;
+                    this.updateStatus(`All players passed. Gulash detected (${this.gulashCount}/3). Redealing...`);
+                    
+                    // If this is the third consecutive Gulash, implement special scoring
+                    if (this.gulashCount >= 3) {
+                        this.updateStatus("Three consecutive Gulash deals! Implementing special scoring...");
+                        // In some variations, everyone gets -50 points after 3 consecutive Gulash deals
+                        for (const player of this.players) {
+                            player.score -= 50;
+                        }
+                        this.updateScoresDisplay();
+                        this.gulashCount = 0;
+                    }
+                    
+                    setTimeout(() => this.dealNewHand(), 1500);
+                } else {
+                    // Move to next player
+                    this.currentPlayer = (this.currentPlayer + 1) % this.players.length;
+                    this.firstBiddingPhase();
+                }
+            }
+
+            placeTrickBid(tricks) {
+                console.log(`Player ${this.currentPlayer} bids ${tricks} tricks`);
+                
+                this.players[this.currentPlayer].trickBid = parseInt(tricks);
+                this.updateStatus(`${this.players[this.currentPlayer].name} bids ${tricks} tricks`);
+                
+                // Check if all players have bid
+                const allBid = this.players.every(player => player.trickBid !== null);
+                
+                if (allBid) {
+                    // Start playing phase
+                    this.gamePhase = 'playing';
+                    this.currentPlayer = (this.declarer + 1) % this.players.length; // Player after declarer leads
+                    setTimeout(() => this.playingPhase(), 1000);
+                } else {
+                    // Move to next player
+                    this.currentPlayer = (this.currentPlayer + 1) % this.players.length;
+                    setTimeout(() => this.secondBiddingPhase(), 500);
+                }
+            }
+
+            playCard(card) {
+                console.log("Playing card:", card);
+                
+                // Validate the card is legal to play
+                const validCards = this.getValidCards(this.currentPlayer);
+                const isValid = validCards.some(c => c.suit === card.suit && c.rank === card.rank);
+                
+                if (!isValid) {
+                    console.error("Invalid card play attempted!");
+                    this.updateStatus(`Invalid card play: ${this.players[this.currentPlayer].name} must follow suit if possible`);
+                    return false; // Don't play the card if it's invalid
+                }
+                
+                // Remove card from player's hand
+                const handIndex = this.players[this.currentPlayer].hand.findIndex(c => 
+                    c.suit === card.suit && c.rank === card.rank);
+                
+                if (handIndex !== -1) {
+                    this.players[this.currentPlayer].hand.splice(handIndex, 1);
+                }
+                
+                // Add to current trick
+                this.currentTrick.push({
+                    player: this.currentPlayer,
+                    card: card
+                });
+                
+                console.log("Current trick:", this.currentTrick);
+                
+                // Set led suit if first card
+                if (this.currentTrick.length === 1) {
+                    this.ledSuit = card.suit;
+                    console.log("Led suit set to:", this.ledSuit);
+                }
+                
+                // Move to next player
+                this.currentPlayer = (this.currentPlayer + 1) % this.players.length;
+                console.log("Next player:", this.currentPlayer);
+                
+                // Update UI before checking if trick is complete
+                this.updateUI();
+                
+                // Check if trick is complete
+                if (this.currentTrick.length === this.players.length) {
+                    console.log("Trick complete, will be handled in next playingPhase call");
+                    // Will be handled in next playingPhase call
+                    setTimeout(() => this.playingPhase(), 1000);
+                    } else {
+                    console.log("Trick not complete, continuing to next player");
+                    setTimeout(() => this.playingPhase(), 500);
+                }
+                
+                return true; // Card was played successfully
+            }
+
+            isTotalOver() {
+                const totalBids = this.players.reduce((sum, player) => sum + player.trickBid, 0);
+                return totalBids > 13;
+            }
+
+            // Add this method to the IsraeliWhistGame class
+            setupCardClickHandlers() {
+                // Get the human player's card area
+                const humanCardsArea = document.getElementById('cards-2');
+                
+                // Remove any existing click handlers by cloning and replacing
+                const newCardsArea = humanCardsArea.cloneNode(true);
+                humanCardsArea.parentNode.replaceChild(newCardsArea, humanCardsArea);
+                
+                // Add a single click handler to the cards area
+                newCardsArea.addEventListener('click', (event) => {
+                    // Only process clicks during the playing phase and when it's the human's turn
+                    if (this.gamePhase !== 'playing' || this.currentPlayer !== 2) {
+                        return;
+                    }
+                    
+                    // Find the clicked card element
+                    let cardElement = event.target;
+                    while (cardElement && !cardElement.classList.contains('card')) {
+                        cardElement = cardElement.parentElement;
+                    }
+                    
+                    // If we found a card element
+                    if (cardElement && cardElement.dataset.suit && cardElement.dataset.rank) {
+                        const suit = cardElement.dataset.suit;
+                        const rank = parseInt(cardElement.dataset.rank);
+                        
+                        // Get valid cards
+                        const validCards = this.getValidCards(this.currentPlayer);
+                        
+                        // Check if the clicked card is valid
+                        const isValid = validCards.some(c => c.suit === suit && c.rank === rank);
+                        
+                        if (isValid) {
+                            // Find the card object in the player's hand
+                            const cardObj = this.players[2].hand.find(c => c.suit === suit && c.rank === rank);
+                            if (cardObj) {
+                                // Play the card
+                                this.playCard(cardObj);
+                            }
+                } else {
+                            this.updateStatus('You must follow suit if possible');
+                        }
+                    }
+                });
+            }
+
+            // Add the suitRank method to the IsraeliWhistGame class
+            suitRank(suit) {
+                const ranks = {
+                    'clubs': 1,
+                    'diamonds': 2,
+                    'hearts': 3,
+                    'spades': 4,
+                    'no-trump': 5
+                };
+                
+                return ranks[suit] || 0;
+            }
+
+            // Add this method to record bid history
+            addToBidHistory(message) {
+                const bidHistory = document.getElementById('bid-history');
+                if (bidHistory) {
+                    const bidItem = document.createElement('div');
+                    bidItem.className = 'bid-history-item';
+                    bidItem.textContent = message;
+                    bidHistory.appendChild(bidItem);
+                    
+                    // Scroll to bottom
+                    bidHistory.scrollTop = bidHistory.scrollHeight;
+                }
+            }
+        }
+
+        // Event listeners for game setup
+        document.addEventListener('DOMContentLoaded', function() {
+            // Make game accessible globally for cards.js integration
+            window.game = new IsraeliWhistGame();
+            
+            // Toggle rules panel
+            document.getElementById('rules-panel').addEventListener('click', function() {
+                this.classList.toggle('expanded');
+            });
+            
+            // Start new game
+            document.getElementById('start-game-btn').addEventListener('click', function() {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('game-container').style.display = 'block';
+                window.game.init();
+                
+                // Show a notification about multiplayer
+                if (!localStorage.getItem('multiplayerNotified')) {
+                    alert('Want to play with friends? Multiplayer mode coming soon! For now, enjoy playing against the AI opponents.');
+                    localStorage.setItem('multiplayerNotified', 'true');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
